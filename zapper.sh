@@ -2,67 +2,64 @@
 # MOVIE RANDOM ZAPPER Script v0.2
 # (needs figlet + vlc to work!)
 
+# Clear the screen
 clear
+
+# Loop indefinitely
 while [ 1 = 1 ]
 do
+  # Specify the directory to use
+  DIR="/home/dan/Desktop/videos/"
 
-# Specify here the directory to use
-DIR="/home/dan/Desktop/videos/"
-# Internal Field Separator set to newline, so file names with
-#spaces do not break our script.
-IFS='
-'
-if [[ -d "${DIR}" ]]
-then
+  # Set the Internal Field Separator to newline, so file names with spaces do not break the script
+  IFS=$'\n'
 
-  # Runs find on the given dir, and dumps the output into a matrix,
-  # it uses the new lines character as a field delimiter, as explained above.
+  # Check if the specified directory exists
+  if [[ -d "${DIR}" ]]; then
+    # Run the 'find' command on the directory to find all movie files with supported extensions
+    file_matrix=($(find "${DIR}" -type f -true -name "*.mpg" -o -name "*.avi" -o -name "*.mpeg" -o -name "*.mp4" -o -name "*.ogv"))
 
-  file_matrix=($( find "${DIR}" -type f -true -name "*.mpg" -o -name "*.avi" -o -name "*.mpeg" -o -name "*.mp4" -o -name "*.ogv" ))
-  num_files=${#file_matrix[*]}
+    # Get the number of movie files found
+    num_files=${#file_matrix[*]}
 
-  # This is the command to run on a random file.
+    # Select a random movie file from the list
+    MOVIE="${file_matrix[$((RANDOM%num_files))]}"
+    
+    # Clear the screen
+    clear
 
-MOVIE="${file_matrix[$((RANDOM%num_files))]}"
+    # Display a message using the 'figlet' command
+    figlet "Zapper!"
+    echo ""
+    tput setaf 3
+    echo "The New Zapping Experience!"
+    echo ""
+    tput setaf 7
+    echo "Now Playing:"
+    echo ""
+    tput setaf 6
+    echo $MOVIE
+    echo ""
+    tput setaf 7
 
-# some nice output for the screen
+    # Get the size of the selected movie file
+    SIZE=$(stat --printf="%s" "$MOVIE")
 
-clear
-figlet "Zapper!"
-echo ""
-tput setaf 3
-echo "The New Zapping Experience!"
-echo ""
-tput setaf 7
-echo "Now Playing:"
-echo ""
-tput setaf 6
-echo $MOVIE
-echo ""
-tput setaf 7
+    # Determine the maximum range of the random start position based on the size of the selected movie file
+    if ((SIZE < 200000000)); then
+      RANGOMAX=100
+    else
+      RANGOMAX=3600
+    fi
 
-SIZE=`stat --printf="%s" $MOVIE`
+    # Display the maximum range of the random start position
+    echo "Max Range in Sec:" $RANGOMAX
+    echo ""
 
-echo "Size:" $SIZE
-echo ""
+    # Generate a random start position within the specified range
+    POSITION=$((RANDOM % RANGOMAX + 3))
 
-RANGOMAX=3600
-RANGOMIN=3
-
-# Defines Random position between 1000 and 100 sec
-
-if (("$SIZE" < "200000000")); then RANGOMAX=100;
-
-else RANGOMAX=3600;
-
-fi;
-
-echo "Max Range in Sec:" $RANGOMAX ;
-
-let POSITION=$RANDOM%$RANGOMAX+$RANGOMIN; echo $R;
-
-cvlc --rc-show-pos --start-time=$POSITION --play-and-exit -q -f --no-video-title-show --global-key-quit="-" "$MOVIE"
-
-fi
-
+    # Play the selected movie file using VLC media player with the specified options
+    cvlc --start-time=$POSITION --play-and-exit -q -f --no-video-title-show "$MOVIE"
+  fi
 done
